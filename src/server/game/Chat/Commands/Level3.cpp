@@ -675,6 +675,118 @@ bool ChatHandler::HandleAddItemCommand(const char *args)
     return true;
 }
 
+bool ChatHandler::HandleItemCommand(const char *args)
+{
+    if (!*args)
+        return false;
+
+    uint32 itemId = 0;
+
+    if (args[0] == '[')                                        // [name] manual form
+    {
+        char* citemName = strtok((char*)args, "]");
+
+        if (citemName && citemName[0])
+        {
+            std::string itemName = citemName+1;
+            WorldDatabase.EscapeString(itemName);
+            QueryResult result = WorldDatabase.PQuery("SELECT entry FROM item_template WHERE name = '%s'", itemName.c_str());
+            if (!result)
+            {
+                PSendSysMessage(LANG_COMMAND_COULDNOTFIND, citemName+1);
+                SetSentErrorMessage(true);
+                return false;
+            }
+            itemId = result->Fetch()->GetUInt16();
+        }
+        else
+            return false;
+    }
+    else                                                    // item_id or [name] Shift-click form |color|Hitem:item_id:0:0:0|h[name]|h|r
+    {
+        char* cId = extractKeyFromLink((char*)args, "Hitem");
+        if (!cId)
+            return false;
+        itemId = atol(cId);
+    }
+
+    char* ccount = strtok(NULL, " ");
+
+    int32 count = 1;
+
+    if (ccount)
+        count = strtol(ccount, NULL, 10);
+
+    if (count == 0)
+        count = 1;
+
+    Player* pl = m_session->GetPlayer();
+    Player* plTarget = pl;
+
+    sLog->outDetail(GetArkCoreString(LANG_ADDITEM), itemId, count);
+
+    ItemPrototype const *pProto = ObjectMgr::GetItemPrototype(itemId);
+    if (!pProto)
+    {
+        PSendSysMessage(LANG_COMMAND_ITEMIDINVALID, itemId);
+        SetSentErrorMessage(true);
+        return false;
+    }
+
+    //Subtract
+    if (count < 0)
+    {
+        plTarget->DestroyItemCount(itemId, -count, true, false);
+        PSendSysMessage(LANG_REMOVEITEM, itemId, -count, GetNameLink(plTarget).c_str());
+        return true;
+    }
+
+    //Adding items
+    uint32 noSpaceForCount = 0;
+
+    // check space and find places
+    ItemPosCountVec dest;
+    uint8 msg = plTarget->CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, itemId, count, &noSpaceForCount);
+    if (msg != EQUIP_ERR_OK)                               // convert to possible store amount
+        count -= noSpaceForCount;
+
+    if (count == 0 || dest.empty())                         // can't add any
+    {
+        PSendSysMessage(LANG_ITEM_CANNOT_CREATE, itemId, noSpaceForCount);
+        SetSentErrorMessage(true);
+        return false;
+    }
+ 
+    QueryResult result; 
+    result = WorldDatabase.PQuery("SELECT active FROM item_disabled WHERE entry='%u'", itemId); 
+    if (result) 
+	{ 
+		PSendSysMessage(LANG_ITEM_DISABLED); 
+		SetSentErrorMessage(true); 
+		return false; 
+	}   
+
+    Item* item = plTarget->StoreNewItem(dest, itemId, true, Item::GenerateItemRandomPropertyId(itemId));
+
+    // remove binding (let GM give it to another player later)
+    if (pl == plTarget)
+        for (ItemPosCountVec::const_iterator itr = dest.begin(); itr != dest.end(); ++itr)
+            if (Item* item1 = pl->GetItemByPos(itr->pos))
+                item1->SetBinding(false);
+
+    if (count > 0 && item)
+    {
+        pl->SendNewItem(item, count, false, true);
+        if (pl != plTarget)
+            plTarget->SendNewItem(item, count, true, false);
+    }
+
+    if (noSpaceForCount > 0)
+        PSendSysMessage(LANG_ITEM_CANNOT_CREATE, itemId, noSpaceForCount);
+
+    return true;
+}
+
 bool ChatHandler::HandleAddItemSetCommand(const char *args)
 {
     if (!*args)
