@@ -705,7 +705,7 @@ void GameObject::SaveToDB(uint32 mapid, uint8 spawnMask, uint32 phaseMask) {
 	data.go_state = GetGoState();
 	data.spawnMask = spawnMask;
 	data.artKit = GetGoArtKit();
-
+	
 	// updated in DB
 	std::ostringstream ss;
 	ss << "INSERT INTO gameobject VALUES (" << m_DBTableGuid << ", "

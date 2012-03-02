@@ -186,6 +186,7 @@ public:
 				db_lowGUID, x, y, z);
 	
 		sLog->outSQLDev("INSERT INTO gameobject ('%u', '%u', 1, '%u', '%u', '%u', '%u', '%u', 0, 0, 0, 1, 1, 60, 100, '%u');", db_lowGUID, gInfo->id, map, chr->GetPhaseMaskForSpawn(), x, y, z, GO_STATE_READY);
+        WorldDatabase.PQuery("INSERT INTO gameobject_spawn (guid, account) values (%u, %u)", db_lowGUID, handler->GetSession()->GetAccountId());
 		return true;
 	}
 
