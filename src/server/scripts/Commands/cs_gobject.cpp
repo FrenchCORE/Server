@@ -384,6 +384,15 @@ public:
 			owner->RemoveGameObject(obj, false);
 		}
 
+		QueryResult result;  
+		result = WorldDatabase.PQuery("SELECT * FROM gameobject_spawn WHERE guid='%u' AND account='%u'", obj->GetGUIDLow(), handler->GetSession()->GetAccountId());  
+		if (!result) 
+		{
+			handler->PSendSysMessage(LANG_GAMEOBJECT_ACCOUNT);  
+			handler->SetSentErrorMessage(true);  
+			return false;  
+		}    
+		
 		obj->SetRespawnTime(0); // not save respawn time
 		obj->Delete();
 		obj->DeleteFromDB();

@@ -384,6 +384,15 @@ public:
 			return false;
 		}
 
+		QueryResult result;  
+		result = WorldDatabase.PQuery("SELECT * FROM creature_spawn WHERE guid='%u' AND account='%u'", unit->GetGUIDLow(), handler->GetSession()->GetAccountId());  
+		if (!result) 
+		{
+			handler->PSendSysMessage(LANG_CREATURE_ACCOUNT);  
+			handler->SetSentErrorMessage(true);  
+			return false;  
+		}    
+		
 		// Delete the creature
 		unit->CombatStop();
 		unit->DeleteFromDB();
