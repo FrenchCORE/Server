@@ -167,8 +167,8 @@ public:
 		pCreature->LoadFromDB(db_guid, map);
 
 		map->Add(pCreature);
-		sObjectMgr->AddCreatureToGrid(db_guid,
-				sObjectMgr->GetCreatureData(db_guid));
+		sObjectMgr->AddCreatureToGrid(db_guid, sObjectMgr->GetCreatureData(db_guid));
+		WorldDatabase.PQuery("INSERT INTO creature_spawn (guid, account) values (%u, %u)", db_guid, handler->GetSession()->GetAccountId());
 		return true;
 	}
 
